@@ -1,0 +1,498 @@
+#+title: Pokemon Javascript using Douglas Crockford Javascript usage guidelines
+
+#+author: Terence Cadd
+
+
+* Pokemon datatype
+
+
+#+LATEX_HEADER: \usepackage[margin=0.05in]{geometry}
+
+
+
+*** pokemon
+#+BEGIN_SRC javascript
+  var pokemon = {
+    name: "Eevee",
+    type: "Normal",
+    hitPoints: 55,
+    move: "Headbutt",
+    damage: 18,
+    strength: "None",
+    weakness: "Fighting",
+    sound: "Eee... Eevee!",
+  };
+#+END_SRC
+
+
+*** pokemon constructor function
+
+It would be nice to be able to create a pokemon , provide useful
+defaults and check that inputs are acceptable
+
+pass an object to the pokemon constructor function 
+
+#+BEGIN_SRC javascript
+  var pokemon = makePokemon({
+    name: "Eevee",
+    type: "Normal",
+    hitPoints: 55,
+    move: "Headbutt",
+    damage: 18,
+    strength: "None",
+    weakness: "Fighting",
+    sound: "Eee... Eevee!",
+  });
+#+END_SRC
+
+*** function to tell us if this really is a genuine pokemon 
+
+
+using closure we should be able to generate 
+
+#+BEGIN_SRC javascript
+  var pokemon = makePokemon({
+    name: "Eevee",
+    type: "Normal",
+    hitPoints: 55,
+    move: "Headbutt",
+    damage: 18,
+    strength: "None",
+    weakness: "Fighting",
+    sound: "Eee... Eevee!",
+  });
+#+END_SRC
+
+
+
+*** pokeball 
+#+BEGIN_SRC javascript
+  var pokeball = {
+
+      }
+#+END_SRC
+
+
+#+BEGIN_SRC javascript :tangle "../pokemon.js"
+/* pokemon.js */
+
+const obj = (function (){
+
+/* private data */    
+const secret_key = "348438834883483848483885823485823485823458234584238542385";
+
+/*  some methods */    
+var isEffectiveAgainst = function (pokemon1, pokemon2) {
+  if (pokemon1.type === "fire" && pokemon2.type === "grass") {
+    return true;
+  }
+  if (pokemon1.type === "grass" && pokemon2.type === "water") {
+    return true;
+  }
+  if (pokemon1.type === "water" && pokemon2.type === "fire") {
+    return true;
+  }
+};
+
+var isWeakTo = function (pokemon1, pokemon2) {
+  if (pokemon1.type === "fire" && pokemon2.type === "water") {
+    return true;
+  }
+  if (pokemon1.type === "water" && pokemon2.type === "grass") {
+    return true;
+  }
+  if (pokemon1.type === "grass" && pokemon2.type === "fire") {
+    return true;
+  }
+};
+
+var makePokemon = function (pokemon1) {
+  var pokemon2 = {};
+  Object.keys(pokemon1).forEach(function (key) {
+    pokemon2[key] = pokemon1[key];
+  });
+  return pokemon2;
+};
+
+
+var copyPokemon = function (pokemon1) {
+  var pokemon2 = {};
+  Object.keys(pokemon1).forEach(function (key) {
+    pokemon2[key] = pokemon1[key];
+  });
+  return pokemon2;
+};
+
+var takeDamage = function (pokemon1, num) {
+  var pokemon2 = copyPokemon(pokemon1);
+  pokemon2.hitPoints = Math.max(0, pokemon2.hitPoints - num);
+  return pokemon2;
+};
+
+var useMove = function (pokemon) {
+  // side effect here
+  console.log(`${pokemon.name} used ${pokemon.move}`);
+  return pokemon.attackDamage;
+};
+
+var hasFainted = function (pokemon) {
+  return pokemon.hitPoints === 0;
+};
+
+/* things wish to export */        
+    return {
+        hasFainted : hasFainted,
+        useMove : useMove,
+        takeDamage : takeDamage,
+        copyPokemon : copyPokemon,
+        isWeakTo : isWeakTo,
+        isEffectiveAgainst : isEffectiveAgainst,
+    };  
+});
+
+
+//console.log("module object = " , obj());
+
+
+module.exports = obj();
+
+#+END_SRC
+
+
+#+BEGIN_SRC text
+        is Effective against ... tests
+
+   ---> charmander -> bulbasaur -> squirtle -->
+           fire          grass       water
+
+  fire burns grass
+  grass drinks water
+  water puts out the fire
+
+  the opposite relationship
+
+        is weak to ... tests
+        
+   ---> charmander <-- bulbasaur <-- squirtle -->
+          fire          grass       water
+
+  grass is weak to fire
+  water is weak to grass
+  fire is weak to water
+
+
+
+       Pokemon --> RattataPokemon
+         |
+         |-->  FirePokemon -->  CharmanderPokemon
+         |-->  WaterPokemon -->  SquirtlePokemon
+         |-->  GrassPokemon ---> BulbasaurPokemon
+
+#+END_SRC
+
+
+#+BEGIN_SRC javascript :tangle "../pokemon.test.js"
+  /* pokemon.test.js */
+
+  const {isEffectiveAgainst , isWeakTo , useMove , hasFainted ,
+        takeDamage , copyPokemon } = require("./pokemon");
+
+  describe("isEffectiveAgainst", () => {
+    test("charmander fire is effective against bulbasaur grass ", () => {
+      const testPokemon1 = { name: "charmander", type: "fire" };
+      const testPokemon2 = { name: "bulbasaur", type: "grass" };
+      expect(isEffectiveAgainst(testPokemon1, testPokemon2)).toEqual(true);
+    });
+
+    test("squirtle water is strong against charmander fire ", () => {
+      const testPokemon1 = { name: "squirtle", type: "water" };
+      const testPokemon2 = { name: "charmander", type: "fire" };
+      expect(isEffectiveAgainst(testPokemon1, testPokemon2)).toEqual(true);
+    });
+
+    test("bulbasaur grass is strong against Squirtle water  ", () => {
+      const testPokemon1 = { name: "bulbasaur", type: "grass" };
+      const testPokemon2 = { name: "squirtle", type: "water" };
+      expect(isEffectiveAgainst(testPokemon1, testPokemon2)).toEqual(true);
+    });
+  });
+
+  describe("isWeakTo", () => {
+    test("bulbasaur grass is weak to charmander fire ", () => {
+      const testPokemon1 = { name: "bulbasaur", type: "grass" };
+      const testPokemon2 = { name: "charmander", type: "fire" };
+      expect(isWeakTo(testPokemon1, testPokemon2)).toEqual(true);
+    });
+
+    test("charmander fire is weak to squirtle water ", () => {
+      const testPokemon1 = { name: "charmander", type: "fire" };
+      const testPokemon2 = { name: "squirtle", type: "water" };
+      expect(isWeakTo(testPokemon1, testPokemon2)).toEqual(true);
+    });
+
+    test("squirtle water is weak to bulbasaur grass ", () => {
+      const testPokemon1 = { name: "squirtle", type: "water" };
+      const testPokemon2 = { name: "bulbasaur", type: "grass" };
+      expect(isWeakTo(testPokemon1, testPokemon2)).toEqual(true);
+    });
+  });
+
+  describe("specific pokemon moves", () => {
+    test("charmander has move ember ", () => {
+      const testPokemon1 = { name: "charmander", type: "fire", move: "ember" };
+      expect(testPokemon1.move).toBe("ember");
+    });
+
+    test("squirtle has move water gun ", () => {
+      const testPokemon1 = { name: "squirtle", type: "water", move: "water gun" };
+      expect(testPokemon1.move).toBe("water gun");
+    });
+
+    test("bulbasaur has move vine whip ", () => {
+      const testPokemon1 = {
+        name: "bulbasaur",
+        type: "grass",
+        move: "vine whip",
+      };
+      expect(testPokemon1.move).toBe("vine whip");
+    });
+  });
+
+  describe("useMove", () => {
+    test("make pokemon with damage 50 ", () => {
+      const damage = 50;
+      const testPokemon1 = {
+        name: "bulbasaur",
+        type: "grass",
+        attackDamage: damage,
+        move: "vine whip",
+      };
+      expect(useMove(testPokemon1)).toBe(damage);
+    });
+  });
+
+  describe("hasFainted", () => {
+    test("pokemon with 50 hitpoints has not fainted ", () => {
+      const hitPoints = 50;
+      const testPokemon1 = {
+        name: "bulbasaur",
+        type: "grass",
+        hitPoints: hitPoints,
+      };
+      expect(hasFainted(testPokemon1)).toBe(false);
+    });
+
+    test("pokemon with zero 0 hitpoints has definitely fainted ", () => {
+      const hitPoints = 0;
+      const testPokemon1 = {
+        name: "bulbasaur",
+        type: "grass",
+        hitPoints: hitPoints,
+      };
+      expect(hasFainted(testPokemon1)).toBe(true);
+    });
+  });
+#+END_SRC
+
+
+#+BEGIN_SRC javascript :tangle "../pokeball.js"
+  const {  hasFainted,
+  useMove,
+  takeDamage,
+  isWeakTo,
+    isEffectiveAgainst,
+} = require("./pokemon");
+
+const ball = {};
+
+var isValidPokemon = function(pokemon){
+    return typeof pokeball === 'object' && Object.hasOwnProperty('name');
+}
+
+var makePokeball = function(pokemon){
+    return {contains: pokemon};
+}
+
+var isValidPokeball = function(pokeball){
+    return typeof pokeball === 'object' && Object.hasOwnProperty('contains');
+}
+
+var thrown = function (pokeball, pokemon) {
+    if( ! isValidPokeball(pokeball)){ return undefined; }
+    
+    // pokeball is not undefined atleast
+    if (pokemon === undefined){
+        //capture scenario
+        if (pokeball.contains === undefined){
+            return makePokeball(pokemon);
+        }
+        else {
+            // already occupied
+            return pokeball;
+        }
+    }
+    else {
+        
+        
+    }
+    
+  if (pokemon && isEmpty(pokeball)) {
+    // capture the pokemon in pokeball
+    this.pokemon = pokemon;
+    this.logger(`you caught ${this.pokemon.name}`);
+  } else if (pokemon) {
+    // pokeball is already occupied
+    this.logger(`pokeball already occupied !`);
+  } else {
+    // invoked with no argument
+    if (!this.pokemon) {
+      // its empty
+      // inform user its empty
+      this.logger(`your pokeball is empty ...`);
+    } else {
+      // return stored pokemon ready for battle
+      this.logger(`GO ${this.pokemon.name} !!`);
+      return this.pokemon;
+    }
+  }
+
+    
+};
+
+var isEmpty = function (pokeball) {
+    return pokeball.contains ? false : true;
+};
+
+var contains = function (pokeball) {
+  return pokemon.contains ? pokemon.containspokemon.name : empty;
+};
+
+ball.thrown = thrown;
+ball.isEmpty = isEmpty;
+ball.contains = contains;
+module.exports = ball;
+
+#+END_SRC
+
+
+#+BEGIN_SRC javascript :tangle "../pokeball.test.js"
+const { thrown, isEmpty, contains } = require("./pokeball");
+const {  hasFainted,
+  useMove,
+  takeDamage,
+  isWeakTo,
+  isEffectiveAgainst,
+} = require("./pokemon");
+
+describe("new pokeball", () => {
+  test(" test1 - new pokeball is empty", () => {
+    const a = new ball.Pokeball();
+    expect(a.isEmpty()).toEqual(true);
+  });
+
+  test(" test2 - new pokeball contains empty...", () => {
+    const a = new ball.Pokeball();
+    expect(a.contains()).toEqual("empty ...");
+  });
+
+  test(" test3 - throwing empty pokeball at pokemon catches a pokemon", () => {
+    // using Mock function also squashes console.log from appearing where it naturally would
+    const myMock1 = jest.fn();
+    const pokeball = new ball.Pokeball({ logger: myMock1 });
+    const pokemon = new pok.Pokemon({ name: "BarryPokemon" });
+    pokeball.throw(pokemon);
+    expect(pokeball.contains()).toEqual(pokemon.name);
+  });
+
+  test(" test4 - catching pokemon makes console log - you caught <the-pokemon-name> ", () => {
+    // bespoke console.logger that will be passed arguments to be introspected
+    const myMock1 = jest.fn();
+    const pokeball = new ball.Pokeball({ logger: myMock1 });
+    const pokemon = new pok.Pokemon({ name: "BarryPokemon" });
+    pokeball.throw(pokemon);
+    // here is where mock function is required to check console.log
+    // received
+    // you caught BarryPokemon
+
+    // The function this.logger on Pokeball class was called exactly once
+    expect(myMock1.mock.calls.length).toBe(1);
+
+    // The first arg of the first call to the function was 'first arg'
+    expect(myMock1.mock.calls[0][0]).toBe("you caught BarryPokemon");
+
+    // successfully mocked console.log feature for this class for testing purposes
+  });
+
+  test(" test5 - attempting to catch a pokemon with a pokeball that is inhabited gives pokemon already occupied message", () => {
+    // bespoke console.logger that will be passed arguments to be introspected
+    const myMock1 = jest.fn();
+    const pokeball = new ball.Pokeball({ logger: myMock1 });
+    const pokemon = new pok.Pokemon({ name: "BarryPokemon" });
+    const pokemon2 = new pok.Pokemon({ name: "TerryPokemon" });
+    pokeball.throw(pokemon);
+    // here is where mock function is required to check console.log
+    // received
+    // you caught BarryPokemon
+
+    // The function this.logger on Pokeball class was called exactly once
+    expect(myMock1.mock.calls.length).toBe(1);
+
+    // The first arg of the first call to the function was 'first arg'
+    expect(myMock1.mock.calls[0][0]).toBe("you caught BarryPokemon");
+
+    // throw the pokeball again at another pokemon
+    pokeball.throw(pokemon2);
+
+    expect(myMock1.mock.calls[1][0]).toBe(`pokeball already occupied !`);
+  });
+
+  test(" test6 - caught pokemon in pokeball has its name in pokeball.contains()", () => {
+    // bespoke console.logger that will be passed arguments to be introspected
+    const myMock1 = jest.fn();
+    const pokeball = new ball.Pokeball({ logger: myMock1 });
+    const pokemon = new pok.Pokemon({ name: "BarryPokemon" });
+    pokeball.throw(pokemon);
+
+    expect(pokeball.contains()).toBe("BarryPokemon");
+  });
+});
+#+END_SRC
+
+
+
+#+BEGIN_SRC javascript :tangle "./demo.js"
+
+#+END_SRC
+
+
+**** TDD Test Driven Development
+
+
+| Name       | Type   | Hitpoints | Move         | Damage | Strength | Weakness | Sound              |
+| Eevee      | Normal |        55 | Headbutt     |     18 | None     | Fighting | Eev... Eevee!      |
+| Flareon    | Fire   |        65 | Fire blast   |     20 | Grass    | Water    | Fla... Flareon!    |
+| Vaporeon   | Water  |        70 | Hydro pump   |     19 | Fire     | Grass    | Vap... Vaporeon!   |
+| Leafeon    | Grass  |        65 | Giga drain   |     17 | Water    | Fire     | Lea... Leafeon!    |
+| Charmander | Fire   |        44 | Flamethrower |     17 | Grass    | Water    | Cha... Charmander! |
+| Squirtle   | Water  |        44 | Surf         |     16 | Fire     | Grass    | Squ... Squirtle!   |
+| Bulbasaur  | Grass  |        45 | Razor leaf   |     16 | Water    | Fire     | Bul... Bulbasaur!  |
+
+
+*** note to self
+
+org-mode tangle C-c C-v t
+
+#+BEGIN_SRC javascript :tangle "./demo.js"
+  /*
+  jest mock functions
+      anywhere we do not want output to go to console.log
+
+      replace console.log with a jest mock function that receives args , gets invoked
+      but does nothing - think about a silent console.log
+  
+      const myMock1 = jest.fn()
+      make Pokeball({logger: myMock1});
+  
+      allows to pass all the tests but not pollute terminal with console.log messages
+  ,*/
+#+END_SRC
