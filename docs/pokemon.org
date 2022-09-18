@@ -1,13 +1,329 @@
-#+title: Pokemon Javascript using Douglas Crockford Javascript usage guidelines
+#+title: Implementing Pokemon in Javascript
 
 #+author: Terence Cadd
+
+* test if javascript on
+
+#+begin_src js :exports both
+ console.log("hello world");
+#+end_src
+
+#+RESULTS:
+: hello world
+: undefined
+
+* Pokemon
+
+** pokemon description
+
+Pokeman are pets that fight each other.  They have names , pokemon come in different types,  health is known as hitPoints , moves available to attack other pokemon.
+if hitPoints reaches zero the pokemon is dead or fainted.
+
+** pokemon data structure
+
+Suppose we wanted a pokemon to have a number of moves, each move could only be executed a certain number of times before that move is no longer available.  we may represent this as
+
+#+BEGIN_SRC 
+  var pokemon1 = {
+    name: "Eevee",
+    type: "Normal",
+    hitPoints: 55,
+    moves: [{name: "headbutt", damage: 18, quantity: 5 } ,
+            {name: "side tackle", damage: 18, quantity: 5 } , /* side tackle quantity is 5 */
+            {name: "punch", damage: 18, quantity: 5 } 
+           ]
+  };
+  //console.log(pokemon1);  
+#+END_SRC
+
+if Eevee pokemon executed the 'side tackle' move , thus reducing the quantity from 5 to 4 we may
+write
+
+#+BEGIN_SRC 
+  pokemon1.moves[1].quantity --;  
+#+END_SRC
+
+** pokemon1 with quantity --
+
+#+BEGIN_SRC js :exports results
+  var pokemon1 = {
+    name: "Eevee",
+    type: "Normal",
+    hitPoints: 55,
+    moves: [{name: "headbutt", damage: 18, quantity: 5 } ,
+            {name: "side tackle", damage: 18, quantity: 5 } , /* side tackle quantity is 5 */
+            {name: "punch", damage: 18, quantity: 5 } 
+           ]
+  };
+  pokemon1.moves[1].quantity --;  
+  console.log(pokemon1);  
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+{
+  name: 'Eevee',
+  type: 'Normal',
+  hitPoints: 55,
+  moves: [
+    { name: 'headbutt', damage: 18, quantity: 5 },
+    { name: 'side tackle', damage: 18, quantity: 4 },
+    { name: 'punch', damage: 18, quantity: 5 }
+  ]
+}
+undefined
+#+end_example
+
+If we wish to have a memory of the game , for instance to replay the game forwards , backwards or jump to an arbitrary point in the game and continue from there, we need a different approach
+
+we need a function that returns almost identical copy except the move 'side tackle' has a quantity one less than before.
+
+** executeMove function
+
+#+BEGIN_SRC 
+  function executeMove(pokemon , moveName){
+      var copiedObject = {};
+      Object.keys(pokemon).forEach(function (key){
+          copiedObject[key] = pokemon[key];
+      });
+      copiedObject.moves = pokemon.moves.map(function(move){
+          if (move.name === moveName && move.quantity > 0){
+              var newMove = {name : move.name , damage: move.damage , quantity: move.quantity - 1}
+              return newMove;
+              }
+          else {
+              return move;
+              }
+          });
+      return copiedObject;
+  }
+#+END_SRC
+
+using our new function we will execute the move 'side tackle' on pokemon1 and also change the name of pokemon1 first move from 'headbutt' to 'crash hat'
+
+#+BEGIN_SRC 
+  var pokemon2 = executeMove(pokemon1 , 'side tackle');
+  pokemon1.moves[0].name = 'crash hat';
+#+END_SRC
+
+and here is the result from node
+
+#+NAME: first-try
+#+BEGIN_SRC js :exports results
+  function executeMove(pokemon , moveName){
+      var copiedObject = {};
+      Object.keys(pokemon).forEach(function (key){
+          copiedObject[key] = pokemon[key];
+      });
+      copiedObject.moves = pokemon.moves.map(function(move){
+          if (move.name === moveName && move.quantity > 0){
+              var newMove = {name : move.name , damage: move.damage , quantity: move.quantity - 1}
+              return newMove;
+              }
+          else {
+              return move;
+              }
+          });
+      return copiedObject;
+  }
+
+  var pokemon1 = {
+      name: 'Eevee',
+      type: 'Normal',
+      hitPoints: 55,
+      moves: [{name: 'headbutt', damage: 18, quantity: 5 } ,
+              {name: 'side tackle', damage: 18, quantity: 5 } ,
+              {name: 'punch', damage: 18, quantity: 5 } 
+             ]
+  };
+
+  var pokemon2 = executeMove(pokemon1 , 'side tackle');
+
+  pokemon1.moves[0].name = 'crash hat';
+
+  console.log(pokemon1);
+
+  console.log(pokemon2);
+
+#+END_SRC
+
+#+RESULTS: first-try
+#+begin_example
+{
+  name: 'Eevee',
+  type: 'Normal',
+  hitPoints: 55,
+  moves: [
+    { name: 'crash hat', damage: 18, quantity: 5 },
+    { name: 'side tackle', damage: 18, quantity: 5 },  //original
+    { name: 'punch', damage: 18, quantity: 5 }
+  ]
+}
+{
+  name: 'Eevee',
+  type: 'Normal',
+  hitPoints: 55,
+  moves: [
+    { name: 'crash hat', damage: 18, quantity: 5 },
+    { name: 'side tackle', damage: 18, quantity: 4 },  //change
+    { name: 'punch', damage: 18, quantity: 5 }
+  ]
+}
+undefined
+#+end_example
+
+we can see that the executeMove function left original pokemon1 with a quantity of 5 in the 'side tackle' move , but created a 'side tackle' quantity of 4 in pokemon2 .  this is exactly what we wanted to happen.
+
+notice now that the name of the 'headbutt' move has been changed in both pokemon1 and pokemon2.  pokemon1 has corrupted pokemon2.  the offending line was 
+
+#+BEGIN_SRC javascript
+
+  pokemon1.moves[0].name = 'crash hat';
+
+#+END_SRC
+
+this is because pokemon1 and pokemon2 share exact same data in memory.
+
+this is equivalent of setf in common lisp , go into data structure and do an inplace mutate.
+
+think nreverse or nconc of common lisp again.
+
+
+
+
+* Pokeball
+
+pokeball is a ball that holds only one pokemon . an empty pokeball can be thrown in an attempt to catch a pokemon.  if the catch is successful then the pokemon is captured in the pokeball.  if capture unsuccessful it is not in the pokeball , pokeball remains empty. a pokeball with a pokemon can be thrown to make the pokemon in the ball fight.
+
+a pokeball that is empty may be represented like this
+
+#+BEGIN_SRC javascript
+  var pokeball = {
+    contains: undefined;
+  };
+#+END_SRC
+
+and then if pokeball is successful in catching pokemon2 above  
+
+#+BEGIN_SRC javascript
+  var pokeball = {
+    contains:  pokemon2 
+  };
+#+END_SRC
+
+if we were to print the pokeball out to the console we may see this
+
+#+BEGIN_SRC javascript
+    var pokeball = {
+      contains:  {
+      name: "Eevee",
+      type: "Normal",
+      hitPoints: 55,
+      moves: [{name: "headbutt", damage: 18, quantity: 5 } ,
+              /* side tackle quantity decreased from 5 to 4 */
+              {name: "side tackle", damage: 18, quantity: 4 } , 
+              {name: "punch", damage: 18, quantity: 5 } 
+             ]
+       }
+    }
+#+END_SRC
+
+we can alter the pokemon through the pokeball contains reference
+
+#+BEGIN_SRC javascript
+  > pokeball
+  {
+    contains: {
+      name: 'Eevee',
+      type: 'Normal',
+      hitPoints: 55,
+      moves: [ [Object], [Object], [Object] ]
+    }
+  }
+  > pokeball.contains.name = 'Brian'
+  'Brian'
+  > pokeball
+  {
+    contains: {
+      name: 'Brian',
+      type: 'Normal',
+      hitPoints: 55,
+      moves: [ [Object], [Object], [Object] ]
+    }
+  }
+  >   
+#+END_SRC
+
+and now pokemon2 has been corrupted also
+
+#+BEGIN_SRC javascript
+  > pokemon2
+{
+  name: 'Brian',
+  type: 'Normal',
+  hitPoints: 55,
+  moves: [
+    { name: 'headbutt', damage: 18, quantity: 5 },
+    { name: 'side tackle', damage: 18, quantity: 4 },
+    { name: 'punch', damage: 18, quantity: 5 }
+  ]
+}
+
+#+END_SRC
+
+
+
+* Mental roadblocks with javascript
+
+The 'this' object disaster.  A method called from an object gets bound to this.  A method called as a function binds 'this' to the global Object giving away all the secrets.
+
+* Poor tail recursion support in Node or Browser
+
+Ideally like a functional programming language that eschews side effects.  The first hurdle
+is that the browser does not support tail call recursion.  so that means using
+some type of while loop to keep the wheels going round.  already butting up against the
+reality of poor infrastructure support for functional programming.
+
+* functional 
+
+while we can use a function and side effects to create an object orientated language,
+thats not the goal here.  like to have a purely functional side effect free
+
+* abstraction leakage
+
+temperature setter getters , celsius and fahrenheit.
+
+american scientists always uses fahrenheit.
+
+french scientist always uses celsius.
+
+constructor can only take celisus temp or fahrenheit temp but not both.
+
+
+* Pokeball problem
+
+
+#+BEGIN_SRC javascript
+  var pokemon = {
+    name: "Eevee",
+    type: "Normal",
+    hitPoints: 55,
+    move: "Headbutt",
+    damage: 18,
+    strength: "None",
+    weakness: "Fighting",
+    sound: "Eee... Eevee!",
+  };
+#+END_SRC
+
+
+
 
 
 * Pokemon datatype
 
 
 #+LATEX_HEADER: \usepackage[margin=0.05in]{geometry}
-
 
 
 *** pokemon
